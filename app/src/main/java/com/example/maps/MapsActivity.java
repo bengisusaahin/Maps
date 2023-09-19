@@ -10,6 +10,7 @@ import androidx.fragment.app.FragmentActivity;
 
 import android.Manifest;
 import android.content.Context;
+import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
 import android.location.Location;
 import android.location.LocationListener;
@@ -36,6 +37,8 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
 
     LocationManager locationManager;
     LocationListener locationListener;
+    SharedPreferences sharedPreferences;
+    boolean info;
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -49,6 +52,10 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         mapFragment.getMapAsync(this);
 
         registerLauncher();
+
+        sharedPreferences = MapsActivity.this.getSharedPreferences
+                ("com.example.maps",MODE_PRIVATE);
+        info = false;
     }
 
     /**
@@ -70,7 +77,13 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         locationListener = new LocationListener() {
             @Override
             public void onLocationChanged(@NonNull Location location) {
-                System.out.println("Location: " + location.toString());
+                info = sharedPreferences.getBoolean("info", false);
+
+                if (!info){
+                    LatLng userLocation = new LatLng(location.getLatitude(),location.getLongitude());
+                    mMap.moveCamera(CameraUpdateFactory.newLatLngZoom(userLocation,15));
+                    sharedPreferences.edit().putBoolean("info",true).apply();
+                }
             }
             //hata aliyorsan onStatusChange
         };
@@ -96,6 +109,13 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
             //gercek uygulamalarda 0 0 kullanmak istemeyebiliriz sürekli güncelleme sürekli pil tüketimi
             locationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER,0,
                     0,locationListener);
+            Location lastLocation = locationManager.getLastKnownLocation(LocationManager.GPS_PROVIDER);
+            if(lastLocation != null){
+                LatLng lastUserLocation = new LatLng(lastLocation.getLatitude(),lastLocation.getLongitude());
+                mMap.moveCamera(CameraUpdateFactory.newLatLngZoom(lastUserLocation,15));
+            }
+
+            mMap.setMyLocationEnabled(true);
         }
 
 
@@ -103,9 +123,9 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         //lat -> latitude
         //lon -> longitude
         //48.858546539612895, 2.2945456704552964
-        LatLng eiffel = new LatLng(48.858546539612895, 2.2945456704552964);
-        mMap.addMarker(new MarkerOptions().position(eiffel).title("Eiffel Tower"));
-        mMap.moveCamera(CameraUpdateFactory.newLatLngZoom(eiffel,15));
+//        LatLng eiffel = new LatLng(48.858546539612895, 2.2945456704552964);
+//        mMap.addMarker(new MarkerOptions().position(eiffel).title("Eiffel Tower"));
+//        mMap.moveCamera(CameraUpdateFactory.newLatLngZoom(eiffel,15));
     }
 
     private void registerLauncher(){
@@ -120,6 +140,12 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
                                     PERMISSION_GRANTED){
                                 locationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER,
                                         0,0,locationListener);
+
+                                Location lastLocation = locationManager.getLastKnownLocation(LocationManager.GPS_PROVIDER);
+                                if(lastLocation != null){
+                                    LatLng lastUserLocation = new LatLng(lastLocation.getLatitude(),lastLocation.getLongitude());
+                                    mMap.moveCamera(CameraUpdateFactory.newLatLngZoom(lastUserLocation,15));
+                                }
                             }
                         }else {
                             //permission denied
